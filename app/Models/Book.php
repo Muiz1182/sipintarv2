@@ -56,7 +56,7 @@ class Book extends Model
     protected function hashid(): Attribute
     {
         return Attribute::make(
-            get: fn () => $this->id ? Hashids::encode($this->id) : null,
+            get: fn() => $this->id ? Hashids::encode($this->id) : null,
         );
     }
 
@@ -67,17 +67,18 @@ class Book extends Model
     {
         return Attribute::make(
             get: function () {
-                // Gunakan helper asset() jika path sudah benar, 
-                // atau Storage::url jika menggunakan symlink
-                if ($this->cover && Storage::disk('public')->exists($this->cover)) {
-                    return Storage::disk('public')->url($this->cover);
+
+                if ($this->cover && file_exists(public_path($this->cover))) {
+                    return asset($this->cover);
                 }
-                
-                // Fallback: Menggunakan UI-Avatars
-                return "https://ui-avatars.com/api/?name=" . urlencode($this->title) . "&background=4a2c1d&color=fbbf24&size=512&bold=true";
+
+                return "https://ui-avatars.com/api/?name="
+                    . urlencode($this->title)
+                    . "&background=4a2c1d&color=fbbf24&size=512&bold=true";
             }
         );
     }
+
 
     /**
      * Accessor: Mendapatkan URL lengkap untuk file PDF.
@@ -85,9 +86,13 @@ class Book extends Model
     protected function pdfUrl(): Attribute
     {
         return Attribute::make(
-            get: fn () => ($this->pdf_file && Storage::disk('public')->exists($this->pdf_file)) 
-                ? Storage::disk('public')->url($this->pdf_file) 
-                : null,
+            get: function () {
+                if ($this->pdf_file && file_exists(public_path($this->pdf_file))) {
+                    return asset($this->pdf_file);
+                }
+
+                return null;
+            }
         );
     }
 
@@ -96,11 +101,11 @@ class Book extends Model
      */
     public function scopeSearch($query, $term)
     {
-        return $query->when($term, function($q) use ($term) {
-            $q->where(function($sub) use ($term) {
+        return $query->when($term, function ($q) use ($term) {
+            $q->where(function ($sub) use ($term) {
                 $sub->where('title', 'like', "%{$term}%")
                     ->orWhere('author', 'like', "%{$term}%")
-                    ->orWhereHas('category', function($cat) use ($term) {
+                    ->orWhereHas('category', function ($cat) use ($term) {
                         $cat->where('name', 'like', "%{$term}%");
                     });
             });
@@ -123,20 +128,38 @@ class Book extends Model
      */
     protected static function booted()
     {
-        // Saat data diperbarui, hapus file lama jika file baru diunggah
         static::updating(function ($book) {
+
             if ($book->isDirty('cover') && $book->getOriginal('cover')) {
-                Storage::disk('public')->delete($book->getOriginal('cover'));
+
+                $oldCover = public_path($book->getOriginal('cover'));
+
+                if (file_exists($oldCover)) {
+                    unlink($oldCover);
+                }
             }
+
             if ($book->isDirty('pdf_file') && $book->getOriginal('pdf_file')) {
-                Storage::disk('public')->delete($book->getOriginal('pdf_file'));
+
+                $oldPdf = public_path($book->getOriginal('pdf_file'));
+
+                if (file_exists($oldPdf)) {
+                    unlink($oldPdf);
+                }
             }
         });
 
-        // Saat data dihapus (Hanya jika bukan soft delete)
         static::deleting(function ($book) {
-            if ($book->cover) Storage::disk('public')->delete($book->cover);
-            if ($book->pdf_file) Storage::disk('public')->delete($book->pdf_file);
+
+            if ($book->cover) {
+                $coverPath = public_path($book->cover);
+                if (file_exists($coverPath)) unlink($coverPath);
+            }
+
+            if ($book->pdf_file) {
+                $pdfPath = public_path($book->pdf_file);
+                if (file_exists($pdfPath)) unlink($pdfPath);
+            }
         });
     }
 }

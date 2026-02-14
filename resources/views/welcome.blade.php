@@ -130,14 +130,14 @@
                                 <div class="book-wrapper group">
                                     {{-- Menggunakan Hashids secara langsung (Pastikan Facade sudah terdaftar) --}}
                                     <a href="{{ route('books.read', Vinkla\Hashids\Facades\Hashids::encode($book->id)) }}" class="book-card block">
-                                        <img src="{{ asset('storage/' . $book->cover) }}" 
+                                        <img src="{{ asset($book->cover) }}" 
                                              alt="{{ $book->title }}" 
                                              onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name={{ urlencode($book->title) }}&background=4a2c1d&color=fbbf24&size=210';">
                                         <div class="book-title">{{ $book->title }}</div>
                                     </a>
                                     
                                     <div class="download-btn">
-                                        <a href="{{ asset('storage/' . $book->pdf_file) }}" 
+                                        <a href="{{ asset($book->pdf_file) }}" 
                                            download="{{ $book->title }}.pdf" 
                                            class="bg-green-600 hover:bg-green-500 text-white text-[9px] font-black py-1.5 px-3 rounded-full flex items-center gap-1 shadow-xl transition-colors border border-green-400">
                                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>

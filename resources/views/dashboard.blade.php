@@ -177,7 +177,7 @@
                                 @forelse($books as $book)
                                     <tr class="hover:bg-amber-50/30 transition-colors group">
                                         <td class="px-8 py-5">
-                                            <img src="{{ asset('storage/' . $book->cover) }}" 
+                                            <img src="{{ asset($book->cover) }}" 
                                                  alt="{{ $book->title }}"
                                                  class="w-12 h-16 object-cover rounded-lg shadow-md border-2 border-white transition-transform group-hover:scale-110"
                                                  onerror="this.src='https://ui-avatars.com/api/?name=Book&background=FDE68A&color=92400E'">
