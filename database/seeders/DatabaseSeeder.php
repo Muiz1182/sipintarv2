@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             [
                 'name' => env('SEED_NAME'),
                 'password' => Hash::make(env('SEED_PASSWORD')),
+                'is_admin' => true,
                 'email_verified_at' => Carbon::now(), // Langsung aktif
             ]
         );
