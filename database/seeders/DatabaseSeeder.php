@@ -16,10 +16,10 @@ class DatabaseSeeder extends Seeder
     {
         // Menggunakan updateOrCreate agar tidak error jika seeder dijalankan ulang
         User::updateOrCreate(
-            ['email' => 'adminsipintar@gmail.com'], // Unik ID untuk pengecekan
+            ['email' => env('SEED_EMAIL')], // Unik ID untuk pengecekan
             [
-                'name' => 'Super Admin SIPINTAR',
-                'password' => Hash::make('admin1182'),
+                'name' => env('SEED_NAME'),
+                'password' => Hash::make(env('SEED_PASSWORD')),
                 'email_verified_at' => Carbon::now(), // Langsung aktif
             ]
         );
