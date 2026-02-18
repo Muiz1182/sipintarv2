@@ -22,12 +22,15 @@
                 </div>
             </div>
 
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg border-l-4 border-red-600">
-                <div class="max-w-xl">
-                    <h3 class="text-lg font-bold text-red-800 mb-4">{{ __('Hapus Akun') }}</h3>
-                    @include('profile.partials.delete-user-form')
+            {{-- if user is admin, dont show  --}}
+            @if(!Auth::user()->is_admin)
+                <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg border-l-4 border-red-600">
+                    <div class="max-w-xl">
+                        <h3 class="text-lg font-bold text-red-800 mb-4">{{ __('Hapus Akun') }}</h3>
+                        @include('profile.partials.delete-user-form')
+                    </div>
                 </div>
-            </div>
+            @endif
             
         </div>
     </div>

@@ -52,7 +52,7 @@ class RegisteredUserController extends Controller
 
                 event(new Registered($user));
 
-                return redirect()->back()->with('success', "Petugas <b>{$user->name}</b> berhasil didaftarkan.");
+                return redirect()->back()->with('success', "Petugas &nbsp;<b>{$user->name}</b>&nbsp; berhasil didaftarkan.");
             } catch (\Exception $e) {
                 return redirect()->back()->with('error', 'Gagal mendaftarkan petugas: ' . $e->getMessage());
             }
