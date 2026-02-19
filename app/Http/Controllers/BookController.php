@@ -19,20 +19,31 @@ class BookController extends Controller
     public function index(Request $request)
     {
         $search = $request->input('search');
-        $books = Book::with('category')
-            ->latest()
-            ->when($search, function ($query) use ($search) {
-                $query->where('title', 'like', "%{$search}%");
-            })
-            ->paginate(100)
-            ->withQueryString();
+        $category = $request->input('category');
 
-        // Mengelompokkan buku berdasarkan kategori untuk tampilan rak
+        $query = Book::with('category')->latest();
+
+        // Filter Search
+        if ($search) {
+            $query->where('title', 'like', "%{$search}%");
+        }
+
+        // Filter Category
+        if ($category) {
+            $query->whereHas('category', function ($q) use ($category) {
+                $q->where('name', $category);
+            });
+        }
+        
+        $books = $query->paginate(100)->withQueryString();
+
         $booksByCategory = $books->groupBy(function ($book) {
             return $book->category->name ?? 'TANPA RAK';
         });
 
-        return view('welcome', compact('booksByCategory', 'books'));
+        $categories = Category::pluck('name');
+
+        return view('welcome', compact('booksByCategory', 'books', 'categories'));
     }
 
     /**
