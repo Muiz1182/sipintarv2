@@ -111,22 +111,23 @@
     </header>
 
 
-    {{-- FILTER KATEGORI --}}
+    {{-- FILTER CATEGORY --}}
     @if(isset($categories) && count($categories))
-        <div class="mt-6 flex flex-wrap justify-center gap-3 px-4">
+        <div class="items-center justify-center py-4 flex overflow-x-auto gap-3 px-6 scrollbar-hide">
             
-            {{-- Tombol Semua --}}
-            <a href="{{ route('home') }}" 
-            class="px-4 py-2 rounded-full text-xs font-black tracking-widest uppercase transition
-            {{ !request('category') ? 'bg-amber-900 text-amber-200 shadow-lg' : 'bg-white text-amber-900 border-2 border-amber-900 hover:bg-amber-100' }}">
+            {{-- Display All Books --}}
+            <a href="{{ route('home') }}"
+            class="shrink-0 px-4 py-2 rounded-full text-xs font-black tracking-widest uppercase transition border-2 border-amber-900
+            {{ !request('category') ? 'bg-amber-900 text-amber-200 shadow-lg' : 'bg-white text-amber-900  hover:bg-amber-100' }}">
                 Semua
             </a>
 
-            @foreach($categories as $cat)
-                <a href="{{ route('home', ['category' => $cat]) }}"
-                class="px-4 py-2 rounded-full text-xs font-black tracking-widest uppercase transition
-                {{ request('category') == $cat ? 'bg-amber-900 text-amber-200 shadow-lg' : 'bg-white text-amber-900 border-2 border-amber-900 hover:bg-amber-100' }}">
-                    {{ $cat }}
+            @foreach($categories as $category)
+                <a href="{{ route('home', ['category' => $category]) }}"
+                class="shrink-0 px-4 py-2 rounded-full text-xs font-black tracking-widest uppercase transition border-2 border-amber-900
+                {{ request('category') == $category ? 'bg-amber-900 text-amber-200 shadow-lg' : 'bg-white text-amber-900 hover:bg-amber-100' }}">
+                    <p class="hidden sm:flex">{{ $category }}</p>
+                    <p class="sm:hidden">{{ last(explode(' ', $category)) }}</p>
                 </a>
             @endforeach
         </div>
