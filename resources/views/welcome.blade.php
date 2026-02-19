@@ -187,6 +187,22 @@
                 {{ $books->appends(request()->input())->links() }}
             </div>
         @endif
+            
+        {{-- Scroll to Top Button --}}
+        <button id="scrollTopBtn"
+            onclick="scrollToTop()"
+            class="hidden fixed bottom-6 right-6 z-50 
+                bg-amber-900 hover:bg-amber-800 
+                text-amber-200 
+                p-3 rounded-full 
+                shadow-2xl 
+                transition-all duration-300 
+                hover:scale-110">
+            
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 15l7-7 7 7"></path>
+            </svg>
+        </button>
     </main>
 
     <footer class="bg-amber-950 text-amber-200 text-center py-8 text-[10px] border-t-8 border-amber-900 mt-auto">
@@ -206,6 +222,24 @@
             window.location.href = "{{ route('home') }}"; 
         }
         document.addEventListener('DOMContentLoaded', toggleClearButton);
+
+        // Scroll to Top
+        const scrollBtn = document.getElementById("scrollTopBtn");
+
+        window.addEventListener("scroll", () => {
+            if (window.scrollY > 300) {
+                scrollBtn.classList.remove("hidden");
+            } else {
+                scrollBtn.classList.add("hidden");
+            }
+        });
+
+        function scrollToTop() {
+            window.scrollTo({
+                top: 0,
+                behavior: "smooth"
+            });
+        }
     </script>
 </body>
 </html>
