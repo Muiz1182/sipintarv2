@@ -110,6 +110,28 @@
         </div>
     </header>
 
+
+    {{-- FILTER KATEGORI --}}
+    @if(isset($categories) && count($categories))
+        <div class="mt-6 flex flex-wrap justify-center gap-3 px-4">
+            
+            {{-- Tombol Semua --}}
+            <a href="{{ route('home') }}" 
+            class="px-4 py-2 rounded-full text-xs font-black tracking-widest uppercase transition
+            {{ !request('category') ? 'bg-amber-900 text-amber-200 shadow-lg' : 'bg-white text-amber-900 border-2 border-amber-900 hover:bg-amber-100' }}">
+                Semua
+            </a>
+
+            @foreach($categories as $cat)
+                <a href="{{ route('home', ['category' => $cat]) }}"
+                class="px-4 py-2 rounded-full text-xs font-black tracking-widest uppercase transition
+                {{ request('category') == $cat ? 'bg-amber-900 text-amber-200 shadow-lg' : 'bg-white text-amber-900 border-2 border-amber-900 hover:bg-amber-100' }}">
+                    {{ $cat }}
+                </a>
+            @endforeach
+        </div>
+    @endif
+
     <main class="container mx-auto px-6 flex-grow pb-24">
         @php 
             $globalShelfCount = (($books->currentPage() - 1) * 1) + 1; 
