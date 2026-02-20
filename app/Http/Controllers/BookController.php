@@ -22,7 +22,6 @@ class BookController extends Controller
         $category = $request->input('category');
 
         $query = Book::whereHas('category')->with('category')->latest();
-        $books = $query->paginate(100)->withQueryString();
 
         // Filter Search
         if ($search) {
@@ -34,11 +33,12 @@ class BookController extends Controller
             $query->whereHas('category', function ($q) use ($category) {
                 $q->where('name', $category);
             });
-
+            $books = $query->paginate(100)->withQueryString();
             $booksByCategory = $books->groupBy(function ($book) {
                 return $book->category->name ?? 'TANPA RAK';
             });
         } else {
+            $books = $query->paginate(100)->withQueryString();
             $booksByCategory = $books->groupBy(function () {
                 return  'TANPA RAK';
             });
