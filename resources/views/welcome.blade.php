@@ -140,8 +140,7 @@
 
         @forelse($booksByCategory as $category => $items)
             <section class="category-section">
-                <div class="mt-5 mb-5 text-center">
-                    <span class="bg-amber-900 text-amber-200 px-4 py-1 rounded-full text-xs font-bold tracking-widest uppercase mb-2 inline-block">Koleksi</span>
+                <div class="{{!request('category') ? 'hidden' : ''}} mt-5 mb-5 text-center">
                     <h3 class="text-3xl font-black text-amber-900 uppercase tracking-widest drop-shadow-sm">{{ $category }}</h3>
                     <div class="w-20 h-1 bg-amber-700 mx-auto mt-2 rounded-full opacity-50"></div>
                 </div>

@@ -21,7 +21,8 @@ class BookController extends Controller
         $search = $request->input('search');
         $category = $request->input('category');
 
-        $query = Book::with('category')->latest();
+        $query = Book::whereHas('category')->with('category')->latest();
+        $books = $query->paginate(100)->withQueryString();
 
         // Filter Search
         if ($search) {
@@ -33,13 +34,15 @@ class BookController extends Controller
             $query->whereHas('category', function ($q) use ($category) {
                 $q->where('name', $category);
             });
-        }
-        
-        $books = $query->paginate(100)->withQueryString();
 
-        $booksByCategory = $books->groupBy(function ($book) {
-            return $book->category->name ?? 'TANPA RAK';
-        });
+            $booksByCategory = $books->groupBy(function ($book) {
+                return $book->category->name ?? 'TANPA RAK';
+            });
+        } else {
+            $booksByCategory = $books->groupBy(function () {
+                return  'TANPA RAK';
+            });
+        }
 
         $categories = Category::pluck('name');
 
