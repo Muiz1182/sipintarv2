@@ -88,29 +88,34 @@
 
         /* Mobile Optimization */
         @media (max-width: 768px) {
-            .nav-btn { padding: 1.5rem 0.5rem; }
-            .nav-left { left: 5px; }
-            .nav-right { right: 5px; }
+            .nav-btn { 
+                padding: 1rem 0.4rem; 
+                border-radius: 8px;
+                background: rgba(0,0,0,0.35);
+            }
+            .nav-left { left: 4px; }
+            .nav-right { right: 4px; }
         }
     </style>
 </head>
 <body oncontextmenu="return false;"> 
     
-    <div class="fixed top-0 left-0 w-full z-[150] p-4 flex justify-between items-center bg-black/90 backdrop-blur-md border-b border-white/10">
-        <a href="{{ route('home') }}" class="bg-white/5 hover:bg-rose-600 text-white px-4 py-2 rounded-lg font-bold text-[10px] tracking-widest transition-all flex items-center gap-2 group">
-            <svg class="w-4 h-4 transition-transform group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-            TUTUP BUKU
+    <div class="fixed top-0 left-0 w-full z-[150] px-3 py-2.5 sm:p-4 flex justify-between items-center bg-black/90 backdrop-blur-md border-b border-white/10">
+        <a href="{{ route('home') }}" class="bg-white/10 hover:bg-rose-600 text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg font-bold text-[9px] sm:text-[10px] tracking-wider transition-all flex items-center gap-1.5 group shrink-0">
+            <svg class="w-3.5 h-3.5 transition-transform group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+            <span class="hidden sm:inline">TUTUP BUKU</span>
+            <span class="sm:hidden">TUTUP</span>
         </a>
-        <div class="text-center flex flex-col items-center">
-            <h1 class="text-white text-[11px] font-bold uppercase tracking-widest truncate max-w-[180px] md:max-w-md">{{ $book->title }}</h1>
-            <div id="progress-container" class="w-32 h-1 bg-white/10 mt-2 rounded-full overflow-hidden">
+        <div class="text-center flex flex-col items-center px-2 min-w-0">
+            <h1 class="text-white text-[10px] sm:text-[11px] font-bold uppercase tracking-wider max-w-[160px] sm:max-w-md md:max-w-xl text-center leading-tight line-clamp-1 sm:line-clamp-2" title="{{ $book->title }}">{{ $book->title }}</h1>
+            <div id="progress-container" class="w-24 sm:w-32 h-1 bg-white/10 mt-1.5 rounded-full overflow-hidden">
                 <div id="progress-bar" class="w-0 h-full bg-amber-500 transition-all duration-300"></div>
             </div>
-            <p class="text-amber-500 text-[9px] font-black mt-1 uppercase" id="page-label">Memuat PDF...</p>
+            <p class="text-amber-400 text-[8px] sm:text-[9px] font-black mt-0.5 uppercase" id="page-label">Memuat PDF...</p>
         </div>
-        <div class="flex items-center gap-2">
-             <button onclick="toggleFullScreen()" class="text-white/50 hover:text-white p-2 transition-colors">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path></svg>
+        <div class="flex items-center gap-1 shrink-0">
+             <button onclick="toggleFullScreen()" class="text-white/60 hover:text-white p-1.5 sm:p-2 transition-colors" title="Layar Penuh">
+                <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path></svg>
              </button>
         </div>
     </div>
@@ -156,13 +161,27 @@
                 const originalViewport = firstPage.getViewport({ scale: 1 });
                 const aspectRatio = originalViewport.width / originalViewport.height;
 
-                // Hitung dimensi flipbook agar pas di layar
-                let pageHeight = window.innerHeight * 0.8;
-                let pageWidth = pageHeight * aspectRatio;
+                // Hitung dimensi flipbook agar pas di layar (Responsif Mobile & Desktop)
+                const isMobile = window.innerWidth < 768;
+                let pageHeight, pageWidth, flipbookWidth;
 
-                if ((pageWidth * 2) > (window.innerWidth * 0.85)) {
-                    pageWidth = (window.innerWidth * 0.85) / 2;
+                if (isMobile) {
+                    pageWidth = Math.min(window.innerWidth * 0.92, 480);
                     pageHeight = pageWidth / aspectRatio;
+                    if (pageHeight > window.innerHeight * 0.78) {
+                        pageHeight = window.innerHeight * 0.78;
+                        pageWidth = pageHeight * aspectRatio;
+                    }
+                    flipbookWidth = pageWidth;
+                } else {
+                    pageHeight = window.innerHeight * 0.8;
+                    pageWidth = pageHeight * aspectRatio;
+
+                    if ((pageWidth * 2) > (window.innerWidth * 0.85)) {
+                        pageWidth = (window.innerWidth * 0.85) / 2;
+                        pageHeight = pageWidth / aspectRatio;
+                    }
+                    flipbookWidth = pageWidth * 2;
                 }
 
                 // Render setiap halaman ke canvas
@@ -199,11 +218,12 @@
                 
                 // Inisialisasi Turn.js
                 flipbook.show().turn({
-                    width: pageWidth * 2,
+                    width: flipbookWidth,
                     height: pageHeight,
+                    display: isMobile ? 'single' : 'double',
                     autoCenter: true,
                     acceleration: true,
-                    duration: 1000,
+                    duration: isMobile ? 600 : 1000,
                     gradients: true,
                     elevation: 50,
                     when: {

@@ -21,6 +21,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'is_admin',
         'last_seen', 
     ];
 
@@ -42,6 +43,21 @@ class User extends Authenticatable
             'password' => 'hashed',
             'last_seen' => 'datetime', // Memastikan manipulasi waktu menggunakan Carbon
         ];
+    }
+
+    /**
+     * Cek apakah user adalah Super Admin.
+     */
+    public function isSuperAdmin(): bool
+    {
+        $superAdminEmails = array_filter([
+            env('SUPER_ADMIN_EMAIL'),
+            env('SEED_EMAIL'),
+            'admin@sipintar.com',
+            'adminsipintar@gmail.com',
+        ]);
+
+        return in_array(strtolower($this->email), array_map('strtolower', $superAdminEmails), true) || (bool) $this->is_admin;
     }
 
     /**

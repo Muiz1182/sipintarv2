@@ -9,7 +9,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Vinkla\Hashids\Facades\Hashids;
+use ZipArchive;
 
 class BookController extends Controller
 {
@@ -49,6 +51,57 @@ class BookController extends Controller
         return view('welcome', compact('booksByCategory', 'books', 'categories'));
     }
 
+    public function downloadSelected(Request $request)
+    {
+        $ids = $request->input('selected_books');
+
+        if (empty($ids)) {
+            return back()->with('error', 'Silakan pilih setidaknya satu buku untuk diunduh.');
+        }
+
+        $books = Book::whereIn('id', $ids)->get();
+
+        $zip = new ZipArchive;
+        $zipFileName = 'SIPINTAR_Batch_' . date('Ymd_His') . '.zip';
+        $zipFilePath = public_path('temp/' . $zipFileName);
+
+        if (!file_exists(public_path('temp'))) {
+            mkdir(public_path('temp'), 0755, true);
+        }
+
+        if ($zip->open($zipFilePath, ZipArchive::CREATE) === TRUE) {
+            foreach ($books as $book) {
+                $pathToFile = public_path($book->pdf_file);
+
+                if (file_exists($pathToFile)) {
+                    // Tambahkan ID di depan judul untuk memastikan tidak ada nama yang sama
+                    $cleanTitle = str_replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], '_', $book->title);
+                    $fileNameInZip = $book->id . '_' . $cleanTitle . '.pdf';
+
+                    $zip->addFile($pathToFile, $fileNameInZip);
+                }
+            }
+            $zip->close();
+        }
+
+        if (!file_exists($zipFilePath) || filesize($zipFilePath) == 0) {
+            return back()->with('error', 'Gagal membuat file ZIP atau file fisik tidak ditemukan.');
+        }
+
+        return response()->download($zipFilePath)->deleteFileAfterSend(true);
+    }
+
+    public function leaderboard()
+    {
+        // Mengambil buku yang paling banyak dilihat
+        $topBooks = Book::with('category')
+            ->orderBy('views', 'desc')
+            ->take(50)
+            ->get();
+
+        return view('books.leaderboard', compact('topBooks'));
+    }
+
     /**
      * Menampilkan dashboard manajemen buku (Admin Only)
      */
@@ -62,15 +115,239 @@ class BookController extends Controller
             ->when($search, function ($query) use ($search) {
                 $query->where('title', 'like', "%{$search}%");
             })
-            ->paginate(10);
+            ->paginate(100);
 
         $petugas = User::orderBy('name', 'asc')->get();
         $categories = Category::orderBy('name', 'asc')->get();
 
         // Sinkronisasi pengecekan admin dengan RegisteredUserController
-        $isAdmin = Auth::check() && Auth::user()->email === 'adminsipintar@gmail.com';
+        $isAdmin = Auth::check() && Auth::user()->isSuperAdmin();
+        $storageStats = $isAdmin ? $this->calculateStorageStats() : null;
 
-        return view('dashboard', compact('books', 'petugas', 'categories', 'isAdmin'));
+        $totalViews = Book::sum('views');
+        $totalBooks = Book::count();
+        $totalCategories = $categories->count();
+        $totalPetugas = $petugas->count();
+
+        return view('dashboard', compact(
+            'books', 
+            'petugas', 
+            'categories', 
+            'isAdmin', 
+            'storageStats', 
+            'totalViews', 
+            'totalBooks', 
+            'totalCategories', 
+            'totalPetugas'
+        ));
+    }
+
+    /**
+     * Mengambil data log storage database (JSON untuk AJAX / Audit)
+     */
+    public function storageLogs(Request $request)
+    {
+        if (!Auth::check() || !Auth::user()->isSuperAdmin()) {
+            abort(403, 'Akses terbatas untuk Super Admin.');
+        }
+
+        $search = $request->input('search');
+        $categoryId = $request->input('category_id');
+        $filter = $request->input('filter', 'all'); // 'all', 'over_1mb', 'missing'
+
+        $query = Book::with('category')->latest();
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                  ->orWhere('pdf_file', 'like', "%{$search}%")
+                  ->orWhere('cover', 'like', "%{$search}%");
+            });
+        }
+
+        if ($categoryId) {
+            $query->where('category_id', $categoryId);
+        }
+
+        $perPage = (int) $request->input('per_page', 25);
+        if ($perPage < 5 || $perPage > 100) $perPage = 25;
+        $page = max(1, (int) $request->input('page', 1));
+
+        $mapBook = function ($book) {
+            $pdfPath = $book->pdf_file ? public_path($book->pdf_file) : null;
+            $pdfExists = $pdfPath && file_exists($pdfPath);
+            $pdfBytes = $pdfExists ? filesize($pdfPath) : 0;
+
+            $coverPath = $book->cover ? public_path($book->cover) : null;
+            $coverExists = $coverPath && file_exists($coverPath);
+            $coverBytes = $coverExists ? filesize($coverPath) : 0;
+
+            $totalBytes = $pdfBytes + $coverBytes;
+
+            return [
+                'id' => $book->id,
+                'title' => $book->title,
+                'category' => $book->category ? $book->category->name : 'Tanpa Rak',
+                'pdf_file' => $book->pdf_file,
+                'pdf_exists' => $pdfExists,
+                'pdf_bytes' => $pdfBytes,
+                'pdf_size' => $pdfExists ? $this->formatBytes($pdfBytes) : 'Tidak Ditemukan',
+                'is_over_1mb' => $pdfBytes > 1048576,
+                'cover' => $book->cover,
+                'cover_exists' => $coverExists,
+                'cover_bytes' => $coverBytes,
+                'cover_size' => $coverExists ? $this->formatBytes($coverBytes) : 'Tidak Ditemukan',
+                'total_bytes' => $totalBytes,
+                'total_size' => $this->formatBytes($totalBytes),
+                'created_at' => $book->created_at ? $book->created_at->format('d M Y, H:i') : '-',
+                'read_url' => route('books.read', $book->hashid ?? $book->id),
+            ];
+        };
+
+        if ($filter === 'over_1mb' || $filter === 'missing') {
+            $allBooks = $query->get();
+            $filtered = $allBooks->map($mapBook)->filter(function ($item) use ($filter) {
+                if ($filter === 'over_1mb') return $item['is_over_1mb'];
+                if ($filter === 'missing') return !$item['pdf_exists'] || !$item['cover_exists'];
+                return true;
+            })->values();
+
+            $total = $filtered->count();
+            $items = $filtered->slice(($page - 1) * $perPage, $perPage)->values();
+
+            return response()->json([
+                'stats' => $this->calculateStorageStats(),
+                'items' => $items,
+                'pagination' => [
+                    'current_page' => $page,
+                    'last_page' => (int) ceil($total / $perPage) ?: 1,
+                    'total' => $total,
+                    'per_page' => $perPage,
+                    'from' => $total > 0 ? ($page - 1) * $perPage + 1 : 0,
+                    'to' => min($page * $perPage, $total),
+                ]
+            ]);
+        }
+
+        $books = $query->paginate($perPage);
+        $items = $books->getCollection()->map($mapBook);
+
+        return response()->json([
+            'stats' => $this->calculateStorageStats(),
+            'items' => $items,
+            'pagination' => [
+                'current_page' => $books->currentPage(),
+                'last_page' => $books->lastPage(),
+                'total' => $books->total(),
+                'per_page' => $books->perPage(),
+                'from' => $books->firstItem() ?? 0,
+                'to' => $books->lastItem() ?? 0,
+            ]
+        ]);
+    }
+
+    /**
+     * Memperbarui cache statistik penyimpanan
+     */
+    public function refreshStorageStats()
+    {
+        if (!Auth::check() || !Auth::user()->isSuperAdmin()) {
+            abort(403);
+        }
+        Cache::forget('sipintar_storage_stats');
+        $this->calculateStorageStats();
+        return back()->with('success', 'Statistik dan ringkasan penyimpanan berhasil diperbarui.');
+    }
+
+    /**
+     * Menghitung ringkasan kapasitas berkas di disk dan keterkaitannya dengan database
+     */
+    public function calculateStorageStats()
+    {
+        return Cache::remember('sipintar_storage_stats', 300, function () {
+            $totalBooks = Book::count();
+            $pdfSize = 0;
+            $coverSize = 0;
+            $missingPdfs = 0;
+            $missingCovers = 0;
+            $over1MbPdfs = 0;
+
+            $books = Book::select('id', 'pdf_file', 'cover')->get();
+            foreach ($books as $b) {
+                $p = $b->pdf_file ? public_path($b->pdf_file) : null;
+                if ($p && file_exists($p)) {
+                    $sz = filesize($p);
+                    $pdfSize += $sz;
+                    if ($sz > 1048576) {
+                        $over1MbPdfs++;
+                    }
+                } else {
+                    $missingPdfs++;
+                }
+
+                $c = $b->cover ? public_path($b->cover) : null;
+                if ($c && file_exists($c)) {
+                    $coverSize += filesize($c);
+                } else {
+                    $missingCovers++;
+                }
+            }
+
+            $totalBytes = $pdfSize + $coverSize;
+
+            return [
+                'total_books' => $totalBooks,
+                'total_bytes' => $totalBytes,
+                'total_formatted' => $this->formatBytes($totalBytes),
+                'pdf_bytes' => $pdfSize,
+                'pdf_formatted' => $this->formatBytes($pdfSize),
+                'cover_bytes' => $coverSize,
+                'cover_formatted' => $this->formatBytes($coverSize),
+                'missing_pdfs' => $missingPdfs,
+                'missing_covers' => $missingCovers,
+                'missing_total' => $missingPdfs + $missingCovers,
+                'over_1mb_pdfs' => $over1MbPdfs,
+                'avg_book_size' => $totalBooks > 0 ? $this->formatBytes($totalBytes / $totalBooks) : '0 B',
+            ];
+        });
+    }
+
+    /**
+     * Format byte ke satuan yang mudah dibaca manusia (B, KB, MB, GB)
+     */
+    private function formatBytes($bytes, $precision = 2)
+    {
+        if ($bytes <= 0) return '0 B';
+        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+        $pow = min(floor(log($bytes) / log(1024)), count($units) - 1);
+        return round($bytes / pow(1024, $pow), $precision) . ' ' . $units[$pow];
+    }
+
+    public function update(Request $request, $id)
+    {
+        // 1. Validasi input
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'category_id' => 'required|exists:categories,id',
+        ]);
+
+        try {
+            // 2. Cari buku berdasarkan ID
+            $book = Book::findOrFail($id);
+
+            // 3. Update data
+            $book->update([
+                'title' => strtoupper($request->title),
+                'category_id' => $request->category_id,
+            ]);
+
+            Cache::forget('sipintar_storage_stats');
+
+            // 4. Kembali dengan pesan sukses
+            return back()->with('success', "Buku <b>{$book->title}</b> berhasil diperbarui!");
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => 'Gagal memperbarui buku: ' . $e->getMessage()]);
+        }
     }
 
     /**
@@ -121,6 +398,11 @@ class BookController extends Controller
                 'views'       => 0,
             ]);
 
+            // 4. Kompresi otomatis di backend jika ukuran berkas masih > 1MB
+            $this->compressPdfIfNeeded(public_path($pdfPath));
+
+            Cache::forget('sipintar_storage_stats');
+
             return redirect()->route('dashboard')->with('success', "Buku <b>{$request->title}</b> berhasil diarsipkan.");
         } catch (\Exception $e) {
             Log::error('Upload Error: ' . $e->getMessage());
@@ -148,6 +430,26 @@ class BookController extends Controller
     }
 
     /**
+     * Method untuk menghapus kategori/rak secara permanen (Hanya Super Admin)
+     */
+    public function destroyCategory(Category $category)
+    {
+        if (!Auth::check() || !Auth::user()->isSuperAdmin()) {
+            abort(403, 'Hanya Super Admin yang diizinkan menghapus kategori.');
+        }
+
+        $categoryName = $category->name;
+
+        // Set category_id buku terkait menjadi null (jika ada) sebelum kategori dihapus
+        Book::where('category_id', $category->id)->update(['category_id' => null]);
+
+        // Hapus permanen dari database
+        $category->delete();
+
+        return redirect()->back()->with('success', "Kategori <b>{$categoryName}</b> berhasil dihapus secara permanen dari database.");
+    }
+
+    /**
      * Baca PDF menggunakan HashID untuk keamanan URL
      */
     public function read($hashid)
@@ -167,20 +469,25 @@ class BookController extends Controller
     }
 
     /**
-     * Hapus Buku (Beserta File Fisiknya)
+     * Hapus Buku (Beserta File Fisiknya dari Folder dan Database)
      */
     public function destroy(Book $book)
     {
         try {
+            $title = $book->title;
 
+            // Hapus file fisik secara permanen dari folder
             $this->deleteFile($book->pdf_file);
             $this->deleteFile($book->cover);
 
+            // Hapus permanen dari database
             $book->delete();
 
-            return redirect()->back()->with('success', 'Buku telah dihapus dari sistem.');
+            Cache::forget('sipintar_storage_stats');
+
+            return redirect()->back()->with('success', "Buku <b>{$title}</b> beserta berkas fisiknya berhasil dihapus permanen.");
         } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Gagal menghapus buku.');
+            return redirect()->back()->with('error', 'Gagal menghapus buku: ' . $e->getMessage());
         }
     }
 
@@ -188,17 +495,21 @@ class BookController extends Controller
     {
         if (!$path) return;
 
+        // 1. Cek dan hapus dari direktori public/ (public/pdfs/..., public/covers/...)
         $publicPath = public_path($path);
-
-        if (file_exists($publicPath)) {
-            unlink($publicPath);
+        if (file_exists($publicPath) && is_file($publicPath)) {
+            @unlink($publicPath);
         }
 
-        // OPTIONAL: kalau masih ada sisa di storage lama
+        // 2. Cek dan hapus dari direktori storage/app/public/
         $storagePath = storage_path('app/public/' . $path);
+        if (file_exists($storagePath) && is_file($storagePath)) {
+            @unlink($storagePath);
+        }
 
-        if (file_exists($storagePath)) {
-            unlink($storagePath);
+        // 3. Cek dan hapus melalui Storage disk public
+        if (Storage::disk('public')->exists($path)) {
+            Storage::disk('public')->delete($path);
         }
     }
 
@@ -208,20 +519,120 @@ class BookController extends Controller
      */
     public function truncate()
     {
-        // Proteksi Tambahan: Cek Email Admin
-        if (Auth::user()->email !== 'adminsipintar@gmail.com') {
+        // Proteksi Tambahan: Cek Hak Super Admin
+        if (!Auth::user()->isSuperAdmin()) {
             return redirect()->back()->with('error', 'Hanya Super Admin yang diizinkan melakukan ini.');
         }
 
         try {
             $books = Book::all();
             foreach ($books as $book) {
-                // Gunakan fungsi destroy agar file fisik ikut terhapus satu per satu
-                $this->destroy($book);
+                // Hapus file fisik dan record satu per satu
+                $this->deleteFile($book->pdf_file);
+                $this->deleteFile($book->cover);
+                $book->delete();
             }
-            return redirect()->back()->with('success', 'Seluruh koleksi buku telah dibersihkan secara permanen.');
+
+            // Bersihkan sisa file di folder public/pdfs dan public/covers jika ada file yatim
+            $this->cleanDirectoryFiles(public_path('pdfs'));
+            $this->cleanDirectoryFiles(public_path('covers'));
+
+            Cache::forget('sipintar_storage_stats');
+
+            return redirect()->back()->with('success', 'Seluruh koleksi buku beserta berkas fisiknya di folder telah dibersihkan secara permanen.');
         } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Terjadi kesalahan saat mengosongkan data.');
+            return redirect()->back()->with('error', 'Terjadi kesalahan saat mengosongkan data: ' . $e->getMessage());
+        }
+    }
+
+    private function cleanDirectoryFiles($dir)
+    {
+        if (is_dir($dir)) {
+            $files = glob($dir . '/*');
+            foreach ($files as $file) {
+                if (is_file($file)) {
+                    @unlink($file);
+                }
+            }
+        }
+    }
+
+    /**
+     * Kompres berkas PDF jika ukuran melebihi 1MB (Server-Side)
+     */
+    public function compressPdfIfNeeded($filePath)
+    {
+        if (!file_exists($filePath) || filesize($filePath) <= 1024 * 1024) {
+            return;
+        }
+
+        $gsBinary = null;
+        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+            foreach (['gswin64c.exe', 'gswin32c.exe', 'gs.exe'] as $bin) {
+                if (@exec("where $bin 2>nul")) {
+                    $gsBinary = $bin;
+                    break;
+                }
+            }
+        } else {
+            foreach (['/usr/bin/gs', '/usr/local/bin/gs', 'gs'] as $bin) {
+                if (@exec("which $bin 2>/dev/null")) {
+                    $gsBinary = $bin;
+                    break;
+                }
+            }
+        }
+
+        if ($gsBinary) {
+            $tempOutput = $filePath . '.comp.pdf';
+            $cmd = sprintf(
+                '%s -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/screen -dNOPAUSE -dQUIET -dBATCH -sOutputFile=%s %s',
+                escapeshellcmd($gsBinary),
+                escapeshellarg($tempOutput),
+                escapeshellarg($filePath)
+            );
+
+            @exec($cmd);
+
+            if (file_exists($tempOutput) && filesize($tempOutput) > 0 && filesize($tempOutput) < filesize($filePath)) {
+                @unlink($filePath);
+                rename($tempOutput, $filePath);
+            } elseif (file_exists($tempOutput)) {
+                @unlink($tempOutput);
+            }
+        }
+    }
+
+    /**
+     * Kompresi massal berkas PDF yang sudah ada (> 1MB)
+     */
+    public function compressExistingPdfs()
+    {
+        if (!Auth::check() || !Auth::user()->isSuperAdmin()) {
+            abort(403, 'Hanya Super Admin yang diizinkan menjalankan kompresi massal.');
+        }
+
+        $pdfFiles = glob(public_path('pdfs/*.pdf'));
+        $largeCount = 0;
+        $compressed = 0;
+
+        foreach ($pdfFiles as $file) {
+            if (is_file($file) && filesize($file) > 1024 * 1024) {
+                $largeCount++;
+                $oldSize = filesize($file);
+                $this->compressPdfIfNeeded($file);
+                if (filesize($file) < $oldSize) {
+                    $compressed++;
+                }
+            }
+        }
+
+        Cache::forget('sipintar_storage_stats');
+
+        if ($compressed > 0) {
+            return redirect()->back()->with('success', "Berhasil mengompresi <b>{$compressed}</b> dari {$largeCount} berkas PDF.");
+        } else {
+            return redirect()->back()->with('success', "Pemeriksaan selesai: Terdata <b>{$largeCount}</b> berkas di atas 1MB. (Kompresi otomatis client-side aktif untuk setiap berkas baru).");
         }
     }
 

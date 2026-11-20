@@ -1,59 +1,152 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# SIPINTAR (Speland Digital Library)
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+SIPINTAR adalah platform perpustakaan digital interaktif modern yang menghadirkan katalog koleksi literasi dalam tampilan lemari buku kayu realistik (*realistic bookcase catalog*) dan pembaca buku digital berbasis lembaran interaktif (*interactive flipbook*).
 
-## About Laravel
+Aplikasi ini dibangun menggunakan arsitektur modern Laravel 11, Tailwind CSS, dan Alpine.js, dengan fokus pada estetika antarmuka, optimasi kompresi dokumen digital, dan kenyamanan membaca lintas perangkat (desktop, tablet, dan ponsel pintar).
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+---
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## 🌟 Fitur Unggulan
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### 1. Katalog Lemari Buku Realistis (Bookcase UI)
+- Tampilan lemari rak kayu bertekstur dengan bayangan kedalaman realistik (*depth shadows*).
+- Setiap kompartemen rak dilengkapi balok kayu penyangga (*wooden shelf beam*) dan plakat kuningan penomoran rak.
+- Lencana status interaktif seperti **Baru** (*New Release*) dan **Viral** (*Trending Readers*).
+- Indikator jumlah pembaca (*views counter*) dan plakat judul presisi sejajar.
+- Filter pencarian instan dan klasifikasi berdasarkan rak/kategori literasi.
 
-## Learning Laravel
+### 2. Pembaca Flipbook Interaktif (Interactive Reader)
+- Pengalaman membalik halaman buku digital secara realistis layaknya membaca buku fisik menggunakan integrasi PDF.js dan Turn.js.
+- **Mobile Single-Page Mode**: Pada layar ponsel pintar (`< 768px`), sistem otomatis beralih ke mode halaman tunggal agar teks dan ilustrasi tetap terbaca jelas tanpa perlu memperbesar layar secara berlebih.
+- Kontrol navigasi ramah sentuhan, tombol layar penuh (*fullscreen*), serta indikator kemajuan membaca (*reading progress bar*).
+- Pelacakan frekuensi baca otomatis untuk setiap sesi literasi.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+### 3. Kompresi Cerdas & Generator Sampul Otomatis
+- **Intelligent PDF Compression**: Fitur kompresi otomatis di sisi peramban (*client-side*) dan perintah CLI Artisan di sisi peladen (*server-side*) yang mengoptimalkan berkas PDF besar ke target &le; 1 MB tanpa menghilangkan keterbacaan teks.
+- **Auto-Generate Cover**: Lembar pertama dokumen PDF otomatis dirender menjadi sampul visual buku berkualitas tinggi saat pengunggahan tanpa memerlukan unggahan gambar manual.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### 4. Pusat Kendali & Manajemen Koleksi
+- **Manajemen Inventaris Buku**: Pencarian cepat, filter rak, penyalinan judul massal, dan fitur unduh buku terpilih ke arsip `.zip`.
+- **Dual-Layout Responsif**:
+  - *Desktop*: Tabel data lengkap dengan informasi ukuran berkas dan status rak.
+  - *Mobile*: Kartu literasi ringkas bebas geser samping (*zero horizontal scroll leak*) dengan tombol sentuh berukuran minimum 44 &times; 44 piksel.
+- **Papan Peringkat (Leaderboard)**: Podium penghargaan digital untuk 3 buku terpopuler dan daftar peringkat pembaca tertinggi.
+- **Manajemen Peran**:
+  - *Super Admin*: Kontrol penuh rak koleksi, manajemen akun staf petugas, audit integritas berkas di disk, dan utilitas pengosongan/kompresi massal.
+  - *Petugas*: Pengunggahan koleksi baru dan pengelolaan inventaris literasi harian.
 
-## Laravel Sponsors
+---
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+## 🛠️ Tumpukan Teknologi (Tech Stack)
 
-### Premium Partners
+- **Backend Framework**: PHP 8.2+, Laravel 11
+- **Database**: MySQL / MariaDB (Mendukung SQLite untuk lingkungan lokal)
+- **Frontend & Styling**: Tailwind CSS, Blade Templates, Alpine.js
+- **Mesin Dokumen & Flipbook**:
+  - [PDF.js](https://mozilla.github.io/pdf.js/) (Rendering dokumen PDF ke elemen canvas)
+  - [pdf-lib](https://pdf-lib.js.org/) (Manipulasi dan optimasi struktur dokumen PDF)
+  - [Turn.js](http://www.turnjs.com/) (Efek animasi pembalik halaman realistis)
+- **Paket Pendukung**:
+  - `vinkla/hashids` (Enkripsi URL identifikasi buku)
+  - `chillerlan/php-qrcode` (Pembuatan kode QR buku)
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+---
 
-## Contributing
+## 📋 Prasyarat Sistem
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Sebelum memasang aplikasi, pastikan sistem Anda telah terpasang:
+- **PHP** versi 8.2 atau lebih tinggi
+- **Ekstensi PHP**: `BCMath`, `Ctype`, `Fileinfo`, `JSON`, `Mbstring`, `OpenSSL`, `PDO`, `Tokenizer`, `XML`, `GD` / `Imagick`
+- **Composer** (Manajer paket ketergantungan PHP)
+- **Node.js & NPM** (Untuk kompilasi aset frontend)
+- **Basis Data**: MySQL 8.0+, MariaDB 10.4+, atau SQLite 3
 
-## Code of Conduct
+---
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## 🚀 Panduan Instalasi Lokal
 
-## Security Vulnerabilities
+Ikuti langkah-langkah di bawah ini untuk menjalankan aplikasi pada lingkungan pengembangan:
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### 1. Kloning Repositori
+```bash
+git clone https://github.com/Muiz1182/sipintarv2.git
+cd sipintarv2
+```
 
-## License
+### 2. Pasang Ketergantungan Backend & Frontend
+```bash
+composer install
+npm install
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+### 3. Konfigurasi Lingkungan (.env)
+Salin berkas contoh konfigurasi lingkungan:
+```bash
+cp .env.example .env
+```
+Buka berkas `.env` dan sesuaikan parameter basis data sesuai konfigurasi lokal Anda:
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=sipintar
+DB_USERNAME=root
+DB_PASSWORD=
+```
+
+### 4. Buat Kunci Aplikasi & Tautan Penyimpanan
+```bash
+php artisan key:generate
+php artisan storage:link
+```
+
+### 5. Jalankan Migrasi Basis Data
+```bash
+php artisan migrate
+```
+*(Opsional) Jalankan seeder bawaan jika diperlukan:*
+```bash
+php artisan db:seed
+```
+
+### 6. Kompilasi Aset & Jalankan Server
+Buka terminal dan jalankan server pengembangan:
+```bash
+php artisan serve
+```
+Aplikasi kini dapat diakses melalui peramban web pada alamat:
+```
+http://localhost:8000
+```
+
+---
+
+## 💻 Perintah Artisan Khusus
+
+Platform menyediakan perintah Artisan untuk optimasi berkas secara berkala:
+
+- **Kompresi Seluruh Berkas PDF yang Tersimpan**:
+  ```bash
+  php artisan books:compress-pdfs
+  ```
+- **Membersihkan dan Membangun Ulang Cache Tampilan**:
+  ```bash
+  php artisan view:clear
+  php artisan route:clear
+  php artisan config:clear
+  ```
+
+---
+
+## 📱 Standar Aksesibilitas & Responsivitas Mobile
+
+Sistem dirancang mengikuti pedoman desain ramah sentuhan (*touch-first*):
+- Target sentuh (*touch target*) interaktif minimum berukuran 44 &times; 44 piksel dengan jarak aman antarelemen.
+- Bebas dari kebocoran gulir samping (*zero horizontal scroll leak*) pada semua resolusi ponsel pintar (mulai lebar 360 piksel ke atas).
+- Reflow tata letak dinamis: 5 kolom pada desktop, 3 kolom pada tablet, dan 2 kolom seimbang pada ponsel.
+
+---
+
+## 📄 Lisensi
+
+Proyek ini dilisensikan di bawah [MIT License](LICENSE).

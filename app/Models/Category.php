@@ -1,7 +1,5 @@
 <?php
 
-namespace App\Http\Controllers; // Pastikan namespace sesuai lokasi file Anda
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -35,13 +33,10 @@ class Category extends Model
 
     /**
      * Relasi ke Model Book.
-     * * CATATAN: Karena tabel 'books' Anda menggunakan string 'category' 
-     * untuk menyimpan nama kategori, maka foreign key-nya adalah 'category' 
-     * dan local key-nya adalah 'name'.
      */
     public function books(): HasMany
     {
-        return $this->hasMany(Book::class, 'category', 'name');
+        return $this->hasMany(Book::class, 'category_id');
     }
 
     /**

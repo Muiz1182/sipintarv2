@@ -124,41 +124,53 @@ class Book extends Model
     }
 
     /**
-     * Boot Method: Cleanup file secara otomatis.
+     * Boot Method: Cleanup file secara otomatis saat update atau delete.
      */
     protected static function booted()
     {
         static::updating(function ($book) {
-
             if ($book->isDirty('cover') && $book->getOriginal('cover')) {
-
-                $oldCover = public_path($book->getOriginal('cover'));
-
-                if (file_exists($oldCover)) {
-                    unlink($oldCover);
+                $oldCover = $book->getOriginal('cover');
+                foreach ([public_path($oldCover), storage_path('app/public/' . $oldCover)] as $path) {
+                    if (file_exists($path) && is_file($path)) {
+                        @unlink($path);
+                    }
+                }
+                if (Storage::disk('public')->exists($oldCover)) {
+                    Storage::disk('public')->delete($oldCover);
                 }
             }
 
             if ($book->isDirty('pdf_file') && $book->getOriginal('pdf_file')) {
-
-                $oldPdf = public_path($book->getOriginal('pdf_file'));
-
-                if (file_exists($oldPdf)) {
-                    unlink($oldPdf);
+                $oldPdf = $book->getOriginal('pdf_file');
+                foreach ([public_path($oldPdf), storage_path('app/public/' . $oldPdf)] as $path) {
+                    if (file_exists($path) && is_file($path)) {
+                        @unlink($path);
+                    }
+                }
+                if (Storage::disk('public')->exists($oldPdf)) {
+                    Storage::disk('public')->delete($oldPdf);
                 }
             }
         });
 
         static::deleting(function ($book) {
+            foreach ([$book->cover, $book->pdf_file] as $file) {
+                if (!$file) continue;
 
-            if ($book->cover) {
-                $coverPath = public_path($book->cover);
-                if (file_exists($coverPath)) unlink($coverPath);
-            }
+                $publicFile = public_path($file);
+                if (file_exists($publicFile) && is_file($publicFile)) {
+                    @unlink($publicFile);
+                }
 
-            if ($book->pdf_file) {
-                $pdfPath = public_path($book->pdf_file);
-                if (file_exists($pdfPath)) unlink($pdfPath);
+                $storageFile = storage_path('app/public/' . $file);
+                if (file_exists($storageFile) && is_file($storageFile)) {
+                    @unlink($storageFile);
+                }
+
+                if (Storage::disk('public')->exists($file)) {
+                    Storage::disk('public')->delete($file);
+                }
             }
         });
     }

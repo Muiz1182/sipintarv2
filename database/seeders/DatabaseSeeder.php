@@ -25,6 +25,8 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
+        $this->call(CategorySeeder::class);
+
         // Opsi: Jika ingin membuat beberapa user testing secara otomatis
         // User::factory(10)->create();
     }

@@ -1,2 +1,4 @@
+Sitemap: https://sipintar9.com/sitemap.xml
+
 User-agent: *
-Disallow:
+Allow: /

@@ -29,7 +29,7 @@ class RegisteredUserController extends Controller
     public function store(Request $request): RedirectResponse
     {
         // Proteksi Manual jika middleware di route belum dipasang
-        if (Auth::user()->email !== 'adminsipintar@gmail.com') {
+        if (!Auth::user()->isSuperAdmin()) {
             abort(403, 'Tindakan ini hanya diizinkan untuk Super Admin.');
         }
 
@@ -64,7 +64,7 @@ class RegisteredUserController extends Controller
      */
     public function updatePetugasPassword(Request $request, User $user): RedirectResponse
     {
-        if (Auth::user()->email !== 'adminsipintar@gmail.com') {
+        if (!Auth::user()->isSuperAdmin()) {
             abort(403);
         }
 
@@ -88,7 +88,7 @@ class RegisteredUserController extends Controller
     public function destroyPetugas(User $user): RedirectResponse
     {
         // Proteksi: Hanya super admin yang bisa menghapus
-        if (Auth::user()->email !== 'adminsipintar@gmail.com') {
+        if (!Auth::user()->isSuperAdmin()) {
             return redirect()->back()->with('error', 'Akses ditolak.');
         }
 

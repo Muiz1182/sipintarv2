@@ -20,10 +20,14 @@ Route::get('/', [BookController::class, 'index'])->name('home');
 // Route membaca buku menggunakan HashID
 Route::get('/read/{hashid}', [BookController::class, 'read'])->name('books.read');
 
+Route::get('/leaderboard', [BookController::class, 'leaderboard'])->name('books.leaderboard');
+
 /**
  * 2. AKSES TERPROTEKSI (AUTH & VERIFIED)
  */
 Route::middleware(['auth', 'verified'])->group(function () {
+    Route::post('/admin/books/download-selected', [BookController::class, 'downloadSelected'])->name('admin.books.download-selected');
+    Route::post('/admin/books/compress-existing', [BookController::class, 'compressExistingPdfs'])->name('admin.books.compress-existing');
     
     // Dashboard Utama Admin/Petugas
     Route::get('/dashboard', [BookController::class, 'adminIndex'])->name('dashboard');
@@ -39,9 +43,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('/books', 'store')->name('books.store');
             Route::post('/category', 'storeCategory')->name('category.store'); 
             
+            Route::patch('/books/{book}', 'update')->name('books.update');
+            
+            // Log & Analisis Storage
+            Route::get('/storage-logs', 'storageLogs')->name('storage.logs');
+            Route::post('/storage-logs/refresh', 'refreshStorageStats')->name('storage.refresh');
+
             // Operasi Delete 
             // Urutan Penting: Truncate harus di atas route dengan parameter {book} 
             // agar kata 'truncate' tidak dianggap sebagai ID buku.
+            Route::delete('/category/{category}', 'destroyCategory')->name('category.destroy');
             Route::delete('/books/truncate', 'truncate')->name('books.truncate');
             Route::delete('/books/{book}', 'destroy')->name('books.destroy');
         });
